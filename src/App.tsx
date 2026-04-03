@@ -336,7 +336,7 @@ function ElevationChart() {
         setLoading(false)
       } catch (e) {
         console.error('GPX fetch failed:', e)
-        setError('載入失敗')
+        setError('⚠️ GPX 來源為 Google Maps 連結，無法直接抓取。請至競賽組取得 GPX 檔案，或聯繫主辦單位索取路線檔。')
         setLoading(false)
       }
     }
@@ -548,7 +548,7 @@ function GPXMap() {
         }
       } catch (err) {
         console.error('GPX load error:', err)
-        setError('載入路線失敗')
+        setError('⚠️ Google Maps 路線無法直接抓取，請向主辦單位索取 GPX 檔案')
         setLoading(false)
       }
     }
