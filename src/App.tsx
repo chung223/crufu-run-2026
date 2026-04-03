@@ -62,6 +62,26 @@ function getDifficultyConfig(difficulty: string) {
   }
 }
 
+// Haversine 計算兩點間距離（公里）
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
+
+// GPX 解析類型
+interface GPXPoint {
+  lat: number
+  lon: number
+  ele: number
+  dist: number
+}
+
 function parseTime(timeStr: string, baseDate: Date): Date {
   const [h, m] = timeStr.split(':').map(Number)
   let date = new Date(baseDate)
@@ -94,84 +114,29 @@ function WeatherCard() {
       <h3 className="text-lg font-bold mb-4 flex items-center gap-2">📅 活動天氣（4/11-12）</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-bg-secondary/50 rounded-xl p-4 border border-white/5">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-3xl">🌤️</span>
-            <div>
-              <p className="font-semibold">Day 1 - 4/11 (六)</p>
-              <p className="text-text-secondary text-sm">宜蘭武荖坑出發</p>
-            </div>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-text-secondary">宜蘭</span>
-              <span className="font-mono text-accent font-semibold">20-26°C</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-text-secondary">降雨機率</span>
-              <span className="text-blue-400">20%</span>
-              <span className="text-xs text-green-400">✨ 適合跑步</span>
-            </div>
-          </div>
+          <div className="flex items-center gap-3 mb-3"><span className="text-3xl">🌤️</span><div><p className="font-semibold">Day 1 - 4/11 (六)</p><p className="text-text-secondary text-sm">宜蘭武荖坑出發</p></div></div>
+          <div className="space-y-2 text-sm"><div className="flex items-center gap-2"><span className="text-text-secondary">宜蘭</span><span className="font-mono text-accent font-semibold">20-26°C</span></div><div className="flex items-center gap-2"><span className="text-text-secondary">降雨機率</span><span className="text-blue-400">20%</span><span className="text-xs text-green-400">✨ 適合跑步</span></div></div>
         </div>
         <div className="bg-bg-secondary/50 rounded-xl p-4 border border-white/5">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-3xl">🌙</span>
-            <div>
-              <p className="font-semibold">Day 2 - 4/12 (日)</p>
-              <p className="text-text-secondary text-sm">淡水終點衝刺</p>
-            </div>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-text-secondary">新北</span>
-              <span className="font-mono text-accent font-semibold">21-27°C</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-text-secondary">降雨機率</span>
-              <span className="text-blue-400">30%</span>
-              <span className="text-xs text-yellow-400">⛅ 多雲</span>
-            </div>
-          </div>
+          <div className="flex items-center gap-3 mb-3"><span className="text-3xl">🌙</span><div><p className="font-semibold">Day 2 - 4/12 (日)</p><p className="text-text-secondary text-sm">淡水終點衝刺</p></div></div>
+          <div className="space-y-2 text-sm"><div className="flex items-center gap-2"><span className="text-text-secondary">新北</span><span className="font-mono text-accent font-semibold">21-27°C</span></div><div className="flex items-center gap-2"><span className="text-text-secondary">降雨機率</span><span className="text-blue-400">30%</span><span className="text-xs text-yellow-400">⛅ 多雲</span></div></div>
         </div>
       </div>
-      <div className="mt-4 bg-warning/10 border border-warning/20 rounded-lg px-4 py-3">
-        <p className="text-warning text-sm flex items-center gap-2">⚠️ <span>夜間山區偏涼，攜帶外套</span></p>
-      </div>
+      <div className="mt-4 bg-warning/10 border border-warning/20 rounded-lg px-4 py-3"><p className="text-warning text-sm flex items-center gap-2">⚠️ <span>夜間山區偏涼，攜帶外套</span></p></div>
     </section>
   )
 }
 
 // ============ 配速速查表 ============
 function PaceTable() {
-  const paceData = legs.slice(0, 10).map(leg => ({
-    num: leg.num, runner: leg.runner,
-    pace: (leg.min / leg.km).toFixed(1),
-    estimatedTime: `${leg.min}min`
-  }))
-
+  const paceData = legs.slice(0, 10).map(leg => ({ num: leg.num, runner: leg.runner, pace: (leg.min / leg.km).toFixed(1), estimatedTime: `${leg.min}min` }))
   return (
     <section className="bg-bg-card rounded-2xl border border-white/10 p-5">
       <h3 className="text-lg font-bold mb-4 flex items-center gap-2">⛽ 配速速查表</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-white/10">
-              <th className="text-left py-2 px-3 text-text-secondary font-medium">棒次</th>
-              <th className="text-left py-2 px-3 text-text-secondary font-medium">跑者</th>
-              <th className="text-left py-2 px-3 text-text-secondary font-medium">配速(分/公里)</th>
-              <th className="text-left py-2 px-3 text-text-secondary font-medium">預估完賽時間</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paceData.map((row) => (
-              <tr key={row.num} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                <td className="py-2 px-3 font-mono text-accent">{row.num}</td>
-                <td className="py-2 px-3 font-semibold">{row.runner}</td>
-                <td className="py-2 px-3 font-mono text-green-400">{row.pace}</td>
-                <td className="py-2 px-3 text-text-secondary">{row.estimatedTime}</td>
-              </tr>
-            ))}
-          </tbody>
+          <thead><tr className="border-b border-white/10"><th className="text-left py-2 px-3 text-text-secondary font-medium">棒次</th><th className="text-left py-2 px-3 text-text-secondary font-medium">跑者</th><th className="text-left py-2 px-3 text-text-secondary font-medium">配速(分/公里)</th><th className="text-left py-2 px-3 text-text-secondary font-medium">預估</th></tr></thead>
+          <tbody>{paceData.map((row) => (<tr key={row.num} className="border-b border-white/5 hover:bg-white/5 transition-colors"><td className="py-2 px-3 font-mono text-accent">{row.num}</td><td className="py-2 px-3 font-semibold">{row.runner}</td><td className="py-2 px-3 font-mono text-green-400">{row.pace}</td><td className="py-2 px-3 text-text-secondary">{row.estimatedTime}</td></tr>))}</tbody>
         </table>
       </div>
     </section>
@@ -234,13 +199,10 @@ function AccommodationCard() {
   return (
     <div className="bg-bg-card rounded-xl border border-white/10 p-4">
       <h3 className="font-semibold mb-3 flex items-center gap-2"><span>🏨</span> 中途住宿</h3>
-      <div className="space-y-2">
-        <p className="text-text-primary font-medium">水芳</p>
-        <p className="text-text-secondary text-sm">九份山城</p>
-        <p className="text-text-secondary text-sm">Day 1 傍晚抵達（約 18:30-19:00）</p>
-        <a href="https://maps.app.goo.gl/QUqAxnjEj55van9d6?g_st=ipc" target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-accent text-sm hover:underline mt-2">📍 查看 Google Maps</a>
-      </div>
+      <p className="text-text-primary font-medium">水芳</p>
+      <p className="text-text-secondary text-sm">九份山城</p>
+      <p className="text-text-secondary text-sm">Day 1 傍晚（約 18:30-19:00）</p>
+      <a href="https://maps.app.goo.gl/QUqAxnjEj55van9d6?g_st=ipc" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-accent text-sm hover:underline mt-2">📍 查看地圖</a>
     </div>
   )
 }
@@ -276,6 +238,250 @@ function CountdownTimer() {
         ))}
       </div>
     </div>
+  )
+}
+
+// ============ 即時進度指示器 ============
+function CurrentLegIndicator() {
+  const [info, setInfo] = useState<{ leg: typeof legs[0], status: string } | null>(null)
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date()
+      const abs = legs.map(l => ({ ...l, s: parseTime(l.start, EVENT_DATE), e: parseTime(l.end, EVENT_DATE) }))
+      if (now < EVENT_DATE) { setInfo(null); return }
+      if (now > abs[abs.length - 1].e) { setInfo({ leg: legs[29], status: 'done' }); return }
+      const cur = abs.find(l => now >= l.s && now <= l.e)
+      setInfo(cur ? { leg: cur, status: 'running' } : null)
+    }
+    update(); const i = setInterval(update, 1000); return () => clearInterval(i)
+  }, [])
+
+  if (!info) return <div className="bg-bg-card rounded-xl border border-accent/30 p-4 mb-6"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-xl">🏃</div><div><p className="text-text-primary font-semibold">第 1 棒將由韋翰打頭陣！</p><p className="text-text-secondary text-sm">4/11 04:30 從武荖坑起跑</p></div></div></div>
+  if (info.status === 'done') return <div className="bg-bg-card rounded-xl border border-success/30 p-4 mb-6"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center text-xl">🎉</div><div><p className="text-success font-semibold text-lg">全部完賽！</p><p className="text-text-secondary text-sm">恭喜 CRUFU RUN 7th 完賽！</p></div></div></div>
+
+  return (
+    <div className="bg-bg-card rounded-xl border border-accent/30 p-4 mb-6 animate-pulse-slow">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-white font-bold text-lg">{info.leg.num}</div>
+          <div>
+            <p className="text-text-primary font-semibold">目前第 {info.leg.num} 棒：{info.leg.runner} 正在跑！</p>
+            <p className="text-text-secondary text-sm font-mono">{info.leg.start} - {info.leg.end} <span className="ml-2">• {info.leg.km}km</span></p>
+          </div>
+        </div>
+        <div className="text-2xl">⏱️</div>
+      </div>
+    </div>
+  )
+}
+
+// ============ 路線高度剖面圖 ============
+function ElevationChart() {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState<{ gain: number, loss: number, max: number, min: number } | null>(null)
+
+  useEffect(() => {
+    const fetchAndParseGPX = async () => {
+      try {
+        const res = await fetch(`https://api.allorigins.win/raw?url=https://reurl.cc/Xqx0ve`)
+        const text = await res.text()
+        const parser = new DOMParser()
+        const xml = parser.parseFromString(text, 'text/xml')
+        const pts = xml.querySelectorAll('trkpt')
+
+        const points: GPXPoint[] = []
+        let totalDist = 0
+
+        pts.forEach((pt, i) => {
+          const lat = parseFloat(pt.getAttribute('lat') || '0')
+          const lon = parseFloat(pt.getAttribute('lon') || '0')
+          const ele = parseFloat(pt.querySelector('ele')?.textContent || '0')
+
+          if (i > 0) {
+            const prev = points[i - 1]
+            const d = getDistance(prev.lat, prev.lon, lat, lon)
+            totalDist += d
+          }
+
+          points.push({ lat, lon, ele, dist: totalDist })
+        })
+
+        if (points.length === 0) throw new Error('No points found')
+
+        // 計算統計數據
+        let gain = 0
+        let loss = 0
+        let maxEle = points[0].ele
+        let minEle = points[0].ele
+
+        for (let i = 1; i < points.length; i++) {
+          const diff = points[i].ele - points[i - 1].ele
+          if (diff > 0) gain += diff
+          else loss += Math.abs(diff)
+          maxEle = Math.max(maxEle, points[i].ele)
+          minEle = Math.min(minEle, points[i].ele)
+        }
+
+        setStats({
+          gain: Math.round(gain),
+          loss: Math.round(loss),
+          max: Math.round(maxEle),
+          min: Math.round(minEle)
+        })
+
+        // 繪製剖面圖
+        drawElevationChart(points)
+        setLoading(false)
+      } catch (e) {
+        console.error('GPX fetch failed:', e)
+        setError('載入失敗')
+        setLoading(false)
+      }
+    }
+
+    fetchAndParseGPX()
+  }, [])
+
+  const drawElevationChart = (points: GPXPoint[]) => {
+    const container = document.getElementById('elevation-chart')
+    if (!container) return
+
+    const width = container.clientWidth
+    const height = 180
+    const padding = { top: 20, right: 20, bottom: 30, left: 50 }
+
+    // 清除舊內容
+    container.innerHTML = ''
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('width', String(width))
+    svg.setAttribute('height', String(height))
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+
+    // 計算範圍
+    const maxDist = points[points.length - 1].dist
+    const eleValues = points.map(p => p.ele)
+    const maxEle = Math.max(...eleValues)
+    const minEle = Math.min(...eleValues)
+    const eleRange = maxEle - minEle || 1
+
+    // 座標轉換
+    const scaleX = (d: number) => padding.left + (d / maxDist) * (width - padding.left - padding.right)
+    const scaleY = (e: number) => padding.top + (1 - (e - minEle) / eleRange) * (height - padding.top - padding.bottom)
+
+    // 建立路徑
+    const pathPoints = points.map(p => `${scaleX(p.dist)},${scaleY(p.ele)}`)
+    const linePath = `M ${pathPoints.join(' L ')}`
+
+    // 填充區域
+    const areaPath = `${linePath} L ${scaleX(maxDist)},${height - padding.bottom} L ${padding.left},${height - padding.bottom} Z`
+
+    // 漸層定義
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
+    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient')
+    gradient.setAttribute('id', 'ele-gradient')
+    gradient.setAttribute('x1', '0%')
+    gradient.setAttribute('y1', '0%')
+    gradient.setAttribute('x2', '0%')
+    gradient.setAttribute('y2', '100%')
+
+    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop')
+    stop1.setAttribute('offset', '0%')
+    stop1.setAttribute('stop-color', '#4ade80')
+    stop1.setAttribute('stop-opacity', '0.4')
+
+    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop')
+    stop2.setAttribute('offset', '100%')
+    stop2.setAttribute('stop-color', '#4ade80')
+    stop2.setAttribute('stop-opacity', '0.05')
+
+    gradient.appendChild(stop1)
+    gradient.appendChild(stop2)
+    defs.appendChild(gradient)
+    svg.appendChild(defs)
+
+    // 繪製填充區域
+    const areaEl = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    areaEl.setAttribute('d', areaPath)
+    areaEl.setAttribute('fill', 'url(#ele-gradient)')
+    svg.appendChild(areaEl)
+
+    // 繪製線條
+    const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+    lineEl.setAttribute('d', linePath)
+    lineEl.setAttribute('fill', 'none')
+    lineEl.setAttribute('stroke', '#4ade80')
+    lineEl.setAttribute('stroke-width', '2')
+    svg.appendChild(lineEl)
+
+    // X軸標籤
+    const xLabels = [0, Math.round(maxDist / 2), Math.round(maxDist)]
+    xLabels.forEach(dist => {
+      const x = scaleX(dist)
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      label.setAttribute('x', String(x))
+      label.setAttribute('y', String(height - 8))
+      label.setAttribute('text-anchor', 'middle')
+      label.setAttribute('fill', '#8ba89a')
+      label.setAttribute('font-size', '10')
+      label.textContent = `${dist}km`
+      svg.appendChild(label)
+    })
+
+    // Y軸標籤
+    const yLabels = [minEle, minEle + eleRange / 2, maxEle]
+    yLabels.forEach(ele => {
+      const y = scaleY(ele)
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      label.setAttribute('x', String(padding.left - 8))
+      label.setAttribute('y', String(y + 4))
+      label.setAttribute('text-anchor', 'end')
+      label.setAttribute('fill', '#8ba89a')
+      label.setAttribute('font-size', '10')
+      label.textContent = `${Math.round(ele)}m`
+      svg.appendChild(label)
+    })
+
+    container.appendChild(svg)
+  }
+
+  return (
+    <section className="bg-bg-card rounded-2xl border border-white/10 p-5 mt-6">
+      <h3 className="text-lg font-bold mb-4 flex items-center gap-2">📊 路線高度剖面圖</h3>
+      {loading ? (
+        <div className="h-[180px] flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
+        </div>
+      ) : error ? (
+        <div className="h-[180px] flex items-center justify-center text-warning">{error}</div>
+      ) : (
+        <>
+          <div id="elevation-chart" className="w-full" />
+          {stats && (
+            <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-white/10">
+              <div className="text-center">
+                <p className="text-accent font-bold text-lg">↑{stats.gain}m</p>
+                <p className="text-text-secondary text-xs">總爬升</p>
+              </div>
+              <div className="text-center">
+                <p className="text-blue-400 font-bold text-lg">↓{stats.loss}m</p>
+                <p className="text-text-secondary text-xs">總下降</p>
+              </div>
+              <div className="text-center">
+                <p className="text-green-400 font-bold text-lg">{stats.max}m</p>
+                <p className="text-text-secondary text-xs">最高點</p>
+              </div>
+              <div className="text-center">
+                <p className="text-yellow-400 font-bold text-lg">{stats.min}m</p>
+                <p className="text-text-secondary text-xs">最低點</p>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </section>
   )
 }
 
@@ -353,41 +559,10 @@ function GPXMap() {
 
   return (
     <div className="relative rounded-xl overflow-hidden border border-white/10">
-      <MapContainer
-        center={[24.8, 121.8]}
-        zoom={10}
-        className="h-[400px] w-full"
-        ref={mapRef}
-        zoomControl={true}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
-        {/* 起點 marker */}
-        <Marker 
-          position={[24.5937, 121.8268]}
-          icon={startIcon}
-        >
-          <Popup>
-            <div className="text-center">
-              <p className="font-bold text-green-600">🏁 起點</p>
-              <p className="text-sm">宜蘭武荖坑</p>
-            </div>
-          </Popup>
-        </Marker>
-        {/* 終點 marker */}
-        <Marker 
-          position={[25.1706, 121.3869]}
-          icon={endIcon}
-        >
-          <Popup>
-            <div className="text-center">
-              <p className="font-bold text-orange-600">🏁 終點</p>
-              <p className="text-sm">淡水漁人碼頭</p>
-            </div>
-          </Popup>
-        </Marker>
+      <MapContainer center={[24.8, 121.8]} zoom={10} className="h-[400px] w-full" ref={mapRef} zoomControl={true}>
+        <TileLayer attribution='&copy; <a href="https://carto.com/">CARTO</a>' url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+        <Marker position={[24.5937, 121.8268]} icon={startIcon}><Popup><div className="text-center"><p className="font-bold text-green-600">🏁 起點</p><p className="text-sm">宜蘭武荖坑</p></div></Popup></Marker>
+        <Marker position={[25.1706, 121.3869]} icon={endIcon}><Popup><div className="text-center"><p className="font-bold text-orange-600">🏁 終點</p><p className="text-sm">淡水漁人碼頭</p></div></Popup></Marker>
       </MapContainer>
       {loading && (
         <div className="absolute inset-0 bg-bg-secondary/80 flex items-center justify-center">
@@ -412,11 +587,11 @@ function GPXMap() {
 // ============ 難度進度條 ============
 function DifficultyBar({ difficulty }: { difficulty: string }) {
   const config = getDifficultyConfig(difficulty)
-  const barWidth = config.bar || 30
+  const barColor = config.bar >= 100 ? 'bg-red-500' : config.bar >= 70 ? 'bg-orange-500' : config.bar >= 50 ? 'bg-yellow-500' : 'bg-green-500'
   return (
     <div className="flex items-center gap-2">
       <div className="w-20 h-2 bg-white/10 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${barWidth >= 100 ? 'bg-red-500' : barWidth >= 70 ? 'bg-orange-500' : barWidth >= 50 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${barWidth}%` }} />
+        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${config.bar}%` }} />
       </div>
       <span className="text-xs text-text-secondary">{config.text}</span>
     </div>
@@ -431,6 +606,9 @@ function LegCard({ leg, isExpanded, onToggle }: { leg: typeof legs[0], isExpande
   const now = new Date()
   const isPast = endTime < now
   const isCurrent = startTime <= now && endTime >= now
+
+  // 找下一棒
+  const nextLeg = legs.find(l => l.num === leg.num + 1)
 
   return (
     <div className={`bg-bg-card rounded-xl border transition-all duration-300 overflow-hidden ${isCurrent ? 'border-accent shadow-lg shadow-accent/20' : isPast ? 'border-white/5 opacity-60' : 'border-white/10 hover:border-white/20'}`}>
@@ -488,6 +666,16 @@ function LegCard({ leg, isExpanded, onToggle }: { leg: typeof legs[0], isExpande
               <span className="text-text-secondary">{vehicles.find(v => v.name.includes(leg.car))?.name} 支援</span>
               <span className="text-text-secondary/50">({vehicles.find(v => v.name.includes(leg.car))?.driver})</span>
             </div>
+            {/* 預計抵達時間 */}
+            {leg.num === 30 ? (
+              <div className="bg-success/10 border border-success/30 rounded-lg px-3 py-2 text-sm">
+                <span className="text-success">🏁 終點預計抵達：{leg.end}</span>
+              </div>
+            ) : nextLeg && (
+              <div className="bg-accent/10 border border-accent/30 rounded-lg px-3 py-2 text-sm">
+                <span className="text-accent">🚩 下一棒預計開始：{nextLeg.runner} @ {nextLeg.start}</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -532,7 +720,6 @@ function VehicleCard({ vehicle }: { vehicle: typeof vehicles[0] }) {
 function LegsTimeline() {
   const [expandedLeg, setExpandedLeg] = useState<number | null>(null)
   const [showAll, setShowAll] = useState(false)
-
   const totalKm = legs.reduce((sum, leg) => sum + leg.km, 0)
   const totalMin = legs.reduce((sum, leg) => sum + leg.min, 0)
 
@@ -545,22 +732,14 @@ function LegsTimeline() {
             共 {legs.length} 棒 • {totalKm.toFixed(1)}km • 約 {Math.round(totalMin / 60)}小時{totalMin % 60}分
           </p>
         </div>
-        <button
-          onClick={() => setShowAll(!showAll)}
-          className="text-sm text-accent hover:underline"
-        >
+        <button onClick={() => setShowAll(!showAll)} className="text-sm text-accent hover:underline">
           {showAll ? '全部收合' : '全部展開'}
         </button>
       </div>
-
       <div className="space-y-2">
         {legs.map((leg) => (
-          <LegCard
-            key={leg.num}
-            leg={leg}
-            isExpanded={showAll || expandedLeg === leg.num}
-            onToggle={() => setExpandedLeg(expandedLeg === leg.num ? null : leg.num)}
-          />
+          <LegCard key={leg.num} leg={leg} isExpanded={showAll || expandedLeg === leg.num}
+            onToggle={() => setExpandedLeg(expandedLeg === leg.num ? null : leg.num)} />
         ))}
       </div>
     </div>
@@ -579,20 +758,11 @@ export default function App() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold tracking-tight">
-                <span className="text-accent">CRUFU</span> RUN 7th
-              </h1>
+              <h1 className="text-xl font-bold tracking-tight"><span className="text-accent">CRUFU</span> RUN 7th</h1>
               <p className="text-text-secondary text-xs">北台灣 240km 接力賽</p>
             </div>
-            <a
-              href={GPX_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-accent hover:underline flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
+            <a href={GPX_URL} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline flex items-center gap-1">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               下載 GPX
             </a>
           </div>
@@ -605,42 +775,26 @@ export default function App() {
           <div className="inline-block px-4 py-1 bg-accent/10 text-accent rounded-full text-sm font-medium mb-4">
             🏃 2026/4/11 (六) 04:30 起跑
           </div>
-          <h2 className="text-3xl font-bold mb-2">
-            靠緣分組隊，靠意志完賽
-          </h2>
-          <p className="text-text-secondary">
-            宜蘭武荖坑 → 淡水漁人碼頭
-          </p>
+          <h2 className="text-3xl font-bold mb-2">靠緣分組隊，靠意志完賽</h2>
+          <p className="text-text-secondary">宜蘭武荖坑 → 淡水漁人碼頭</p>
           <div className="flex justify-center gap-6 mt-4 text-sm">
-            <div>
-              <span className="text-2xl font-bold text-accent">{legs.length}</span>
-              <span className="text-text-secondary ml-1">棒</span>
-            </div>
-            <div>
-              <span className="text-2xl font-bold text-route">{totalKm.toFixed(1)}</span>
-              <span className="text-text-secondary ml-1">公里</span>
-            </div>
-            <div>
-              <span className="text-2xl font-bold text-warning">{nightLegs}</span>
-              <span className="text-text-secondary ml-1">夜跑棒</span>
-            </div>
+            <div><span className="text-2xl font-bold text-accent">{legs.length}</span><span className="text-text-secondary ml-1">棒</span></div>
+            <div><span className="text-2xl font-bold text-route">{totalKm.toFixed(1)}</span><span className="text-text-secondary ml-1">公里</span></div>
+            <div><span className="text-2xl font-bold text-warning">{nightLegs}</span><span className="text-text-secondary ml-1">夜跑棒</span></div>
           </div>
         </section>
 
         {/* Countdown */}
-        <section className="bg-bg-card rounded-2xl border border-white/10">
-          <CountdownTimer />
-        </section>
-
+        <section className="bg-bg-card rounded-2xl border border-white/10"><CountdownTimer /></section>
+        {/* Current Leg Indicator */}
+        <CurrentLegIndicator />
         {/* Weather */}
         <WeatherCard />
 
         {/* Info Cards */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-bg-card rounded-xl border border-white/10 p-4">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <span>📍</span> 集合地點
-            </h3>
+            <h3 className="font-semibold mb-3 flex items-center gap-2"><span>📍</span> 集合地點</h3>
             <p className="text-text-primary">湘豐客棧</p>
             <p className="text-text-secondary text-sm">宜蘭縣礁溪鄉塭底路70-14號</p>
             <p className="text-accent text-sm mt-2">2026/4/10 (五) 集合</p>
@@ -648,36 +802,25 @@ export default function App() {
           <AccommodationCard />
         </section>
 
-        {/* Pace Table */}
         <PaceTable />
-
-        {/* Gear List */}
         <GearList />
 
         {/* GPX Map */}
         <section>
-          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <span>🗺️</span> 路線地圖
-          </h3>
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><span>🗺️</span> 路線地圖</h3>
           <GPXMap />
         </section>
+        <ElevationChart />
 
         {/* Vehicles */}
         <section>
-          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <span>🚗</span> 支援車輛
-          </h3>
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><span>🚗</span> 支援車輛</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {vehicles.map((vehicle) => (
-              <VehicleCard key={vehicle.name} vehicle={vehicle} />
-            ))}
+            {vehicles.map((vehicle) => (<VehicleCard key={vehicle.name} vehicle={vehicle} />))}
           </div>
         </section>
 
-        {/* Legs Timeline */}
-        <section>
-          <LegsTimeline />
-        </section>
+        <LegsTimeline />
 
         {/* Footer */}
         <footer className="text-center py-8 text-text-secondary text-sm border-t border-white/5">
