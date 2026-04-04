@@ -50,7 +50,7 @@ export const vehicles = [
 export const ASSEMBLY_INFO = {
   date: "2026年4月10日（五）",
   location: "湘豐客棧",
-  address: "宜蘭縣礁溪鄉塭底路70-14號",
+  address: "宜蘭縣礁溪鄉塭底路70之18號",
   nav: "天空島上的小木屋",
   url: "https://maps.app.goo.gl/QUqAxnjEj55van9d6?g_st=ipc",
 }
