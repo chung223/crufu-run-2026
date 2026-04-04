@@ -244,7 +244,10 @@ function CurrentLegIndicator() {
 function ElevationChart() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState<{ gain: number, loss: number, max: number, min: number } | null>(null)
+  const [chartData, setChartData] = useState<{
+    points: KMLPoint[]
+    stats: { gain: number; loss: number; max: number; min: number }
+  } | null>(null)
 
   useEffect(() => {
     const loadElevation = async () => {
@@ -261,10 +264,13 @@ function ElevationChart() {
           minEle = Math.min(minEle, points[i].ele)
         }
 
-        setStats({ gain: Math.round(gain), loss: Math.round(loss), max: Math.round(maxEle), min: Math.round(minEle) })
-        drawElevationChart(points)
+        setChartData({
+          points,
+          stats: { gain: Math.round(gain), loss: Math.round(loss), max: Math.round(maxEle), min: Math.round(minEle) }
+        })
         setLoading(false)
       } catch (e) {
+        console.error(e)
         setError('⚠️ 高度資料載入失敗')
         setLoading(false)
       }
@@ -272,97 +278,56 @@ function ElevationChart() {
     loadElevation()
   }, [])
 
-  const drawElevationChart = (points: KMLPoint[]) => {
-    const container = document.getElementById('elevation-chart')
-    if (!container) return
+  // SVG 渲染（固定尺寸，響應式）
+  const chartHeight = 200
+  const chartPadding = { top: 20, right: 20, bottom: 40, left: 55 }
+  const chartWidth = 800 // 固定，配合 viewBox 響應式
 
-    const width = container.clientWidth
-    const height = 200
-    const padding = { top: 20, right: 20, bottom: 30, left: 50 }
-
-    container.innerHTML = ''
-
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    svg.setAttribute('width', String(width))
-    svg.setAttribute('height', String(height))
-    svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
-
+  const renderChart = () => {
+    if (!chartData) return null
+    const { points } = chartData
     const maxDist = points[points.length - 1].dist
     const eleValues = points.map(p => p.ele)
     const maxEle = Math.max(...eleValues)
     const minEle = Math.min(...eleValues)
     const eleRange = maxEle - minEle || 1
 
-    const scaleX = (d: number) => padding.left + (d / maxDist) * (width - padding.left - padding.right)
-    const scaleY = (e: number) => padding.top + (1 - (e - minEle) / eleRange) * (height - padding.top - padding.bottom)
+    const scaleX = (d: number) => chartPadding.left + (d / maxDist) * (chartWidth - chartPadding.left - chartPadding.right)
+    const scaleY = (e: number) => chartPadding.top + (1 - (e - minEle) / eleRange) * (chartHeight - chartPadding.top - chartPadding.bottom)
 
     const pathPoints = points.map(p => `${scaleX(p.dist)},${scaleY(p.ele)}`)
     const linePath = `M ${pathPoints.join(' L ')}`
-    const areaPath = `${linePath} L ${scaleX(maxDist)},${height - padding.bottom} L ${padding.left},${height - padding.bottom} Z`
-
-    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
-    const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient')
-    gradient.setAttribute('id', 'ele-gradient')
-    gradient.setAttribute('x1', '0%')
-    gradient.setAttribute('y1', '0%')
-    gradient.setAttribute('x2', '0%')
-    gradient.setAttribute('y2', '100%')
-
-    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop')
-    stop1.setAttribute('offset', '0%')
-    stop1.setAttribute('stop-color', '#f97316')
-    stop1.setAttribute('stop-opacity', '0.5')
-    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop')
-    stop2.setAttribute('offset', '100%')
-    stop2.setAttribute('stop-color', '#f97316')
-    stop2.setAttribute('stop-opacity', '0.05')
-
-    gradient.appendChild(stop1)
-    gradient.appendChild(stop2)
-    defs.appendChild(gradient)
-    svg.appendChild(defs)
-
-    const areaEl = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-    areaEl.setAttribute('d', areaPath)
-    areaEl.setAttribute('fill', 'url(#ele-gradient)')
-    svg.appendChild(areaEl)
-
-    const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-    lineEl.setAttribute('d', linePath)
-    lineEl.setAttribute('fill', 'none')
-    lineEl.setAttribute('stroke', '#f97316')
-    lineEl.setAttribute('stroke-width', '2.5')
-    svg.appendChild(lineEl)
+    const areaPath = `${linePath} L ${scaleX(maxDist)},${chartHeight - chartPadding.bottom} L ${chartPadding.left},${chartHeight - chartPadding.bottom} Z`
 
     const xLabels = [0, Math.round(maxDist / 2), Math.round(maxDist)]
-    xLabels.forEach(dist => {
-      const x = scaleX(dist)
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', String(x))
-      label.setAttribute('y', String(height - 8))
-      label.setAttribute('text-anchor', 'middle')
-      label.setAttribute('fill', '#64748b')
-      label.setAttribute('font-size', '11')
-      label.setAttribute('font-family', 'JetBrains Mono, monospace')
-      label.textContent = `${dist}km`
-      svg.appendChild(label)
-    })
+    const yLabels = [minEle, Math.round(minEle + eleRange / 2), maxEle]
 
-    const yLabels = [minEle, minEle + eleRange / 2, maxEle]
-    yLabels.forEach(ele => {
-      const y = scaleY(ele)
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-      label.setAttribute('x', String(padding.left - 8))
-      label.setAttribute('y', String(y + 4))
-      label.setAttribute('text-anchor', 'end')
-      label.setAttribute('fill', '#64748b')
-      label.setAttribute('font-size', '11')
-      label.setAttribute('font-family', 'JetBrains Mono, monospace')
-      label.textContent = `${Math.round(ele)}m`
-      svg.appendChild(label)
-    })
-
-    container.appendChild(svg)
+    return (
+      <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="ele-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#f97316" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#f97316" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+        {/* 填色區域 */}
+        <path d={areaPath} fill="url(#ele-gradient)" />
+        {/* 線條 */}
+        <path d={linePath} fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinejoin="round" />
+        {/* X 軸標籤 */}
+        {xLabels.map(dist => (
+          <text key={`x-${dist}`} x={scaleX(dist)} y={chartHeight - 8} textAnchor="middle" fill="#64748b" fontSize={11} fontFamily="JetBrains Mono, monospace">
+            {dist}km
+          </text>
+        ))}
+        {/* Y 軸標籤 */}
+        {yLabels.map((ele, i) => (
+          <text key={`y-${i}`} x={chartPadding.left - 8} y={scaleY(ele) + 4} textAnchor="end" fill="#64748b" fontSize={11} fontFamily="JetBrains Mono, monospace">
+            {Math.round(ele)}m
+          </text>
+        ))}
+      </svg>
+    )
   }
 
   return (
@@ -376,31 +341,29 @@ function ElevationChart() {
         </div>
       ) : error ? (
         <div className="h-[200px] flex items-center justify-center text-amber-400">{error}</div>
-      ) : (
+      ) : chartData ? (
         <>
-          <div id="elevation-chart" className="w-full" />
-          {stats && (
-            <div className="grid grid-cols-4 gap-4 mt-5 pt-5 border-t border-slate-700/50">
-              <div className="text-center">
-                <p className="text-orange-400 font-bold text-xl font-mono">↑{stats.gain}m</p>
-                <p className="text-slate-500 text-xs mt-1">總爬升</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sky-400 font-bold text-xl font-mono">↓{stats.loss}m</p>
-                <p className="text-slate-500 text-xs mt-1">總下降</p>
-              </div>
-              <div className="text-center">
-                <p className="text-green-400 font-bold text-xl font-mono">{stats.max}m</p>
-                <p className="text-slate-500 text-xs mt-1">最高點</p>
-              </div>
-              <div className="text-center">
-                <p className="text-amber-400 font-bold text-xl font-mono">{stats.min}m</p>
-                <p className="text-slate-500 text-xs mt-1">最低點</p>
-              </div>
+          {renderChart()}
+          <div className="grid grid-cols-4 gap-4 mt-5 pt-5 border-t border-slate-700/50">
+            <div className="text-center">
+              <p className="text-orange-400 font-bold text-xl font-mono">↑{chartData.stats.gain}m</p>
+              <p className="text-slate-500 text-xs mt-1">總爬升</p>
             </div>
-          )}
+            <div className="text-center">
+              <p className="text-sky-400 font-bold text-xl font-mono">↓{chartData.stats.loss}m</p>
+              <p className="text-slate-500 text-xs mt-1">總下降</p>
+            </div>
+            <div className="text-center">
+              <p className="text-green-400 font-bold text-xl font-mono">{chartData.stats.max}m</p>
+              <p className="text-slate-500 text-xs mt-1">最高點</p>
+            </div>
+            <div className="text-center">
+              <p className="text-amber-400 font-bold text-xl font-mono">{chartData.stats.min}m</p>
+              <p className="text-slate-500 text-xs mt-1">最低點</p>
+            </div>
+          </div>
         </>
-      )}
+      ) : null}
     </section>
   )
 }
