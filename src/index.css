@@ -1,17 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-primary: #0a0f0d;
-  --color-bg-secondary: #111a14;
-  --color-bg-card: #162019;
-  --color-text-primary: #f0f7f2;
-  --color-text-secondary: #8ba89a;
-  --color-accent: #ff6b35;
-  --color-accent-glow: rgba(255, 107, 53, 0.3);
+  /* 破曉主題色彩系統 - Dawn/Sunrise Gradient */
+  --color-midnight: #0f172a;
+  --color-twilight: #1e3a5f;
+  --color-sunrise: #f97316;
+  --color-golden: #fbbf24;
+  --color-cream: #fef3c7;
+  --color-charcoal: #1f2937;
+  
+  /* 映射到實用變數 */
+  --color-bg-primary: var(--color-midnight);
+  --color-bg-secondary: #1a2640;
+  --color-bg-card: #162032;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-accent: var(--color-sunrise);
+  --color-accent-glow: rgba(249, 115, 22, 0.3);
   --color-success: #22c55e;
   --color-warning: #eab308;
   --color-danger: #ef4444;
-  --color-route: #4ade80;
+  --color-route: #fbbf24;
+  --color-highlight: var(--color-golden);
+  
+  /* 字體系統 */
+  --font-display: 'Outfit', system-ui, sans-serif;
   --font-sans: 'Noto Sans TC', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
@@ -25,18 +38,106 @@ body {
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+  min-height: 100vh;
 }
 
+/* 破曉漸層背景 */
+.dawn-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--color-midnight) 0%,
+    var(--color-twilight) 40%,
+    #2d4a6f 60%,
+    #4a6fa5 75%,
+    var(--color-sunrise) 90%,
+    var(--color-golden) 100%
+  );
+  background-size: 400% 400%;
+  animation: dawn-shift 20s ease infinite;
+}
+
+@keyframes dawn-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* 斜切裝飾線 */
+.diagonal-accent {
+  position: relative;
+}
+
+.diagonal-accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-sunrise), var(--color-golden), transparent);
+  transform: skewX(-20deg);
+}
+
+/* 數字卡片樣式 */
+.stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 夜間棒次標記 */
+.night-leg {
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+  border-left: 3px solid var(--color-twilight);
+}
+
+/* GPX 標籤 */
 .gpx-tag {
-  background: var(--color-accent);
+  background: linear-gradient(135deg, var(--color-sunrise), var(--color-golden));
   color: white;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
+  font-family: var(--font-mono);
 }
 
+/* 地圖容器 */
 .leaflet-container {
-  background: #1a2a20;
+  background: #0f172a;
   border-radius: 12px;
+}
+
+/* 滾動條美化 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-midnight);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-twilight);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-sunrise);
+}
+
+/* 動畫 */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+  50% { box-shadow: 0 0 20px 5px rgba(249, 115, 22, 0.2); }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* 進度條 */
+.progress-bar {
+  background: linear-gradient(90deg, var(--color-twilight), var(--color-sunrise));
+  height: 4px;
+  border-radius: 2px;
 }
