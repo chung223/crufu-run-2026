@@ -2,11 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import 'leaflet-gpx/gpx.js'
 
 // ============ 賽事資料 ============
 const EVENT_DATE = new Date('2026-04-11T04:30:00+08:00')
-const GPX_URL = 'https://reurl.cc/Xqx0ve'
+const KML_URL = '/route.kml'
 
 export const legs = [
   { num: 1, runner: "韋翰", start: "04:30", end: "05:17", min: 47, km: 6.7, difficulty: "易", startAddr: "宜蘭縣蘇澳鎮武荖坑路116號", endAddr: "宜蘭縣蘇澳鎮信義路101號", car: "A", gateOpen: "", gateClose: "" },
@@ -74,12 +73,61 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * c
 }
 
-// GPX 解析類型
-interface GPXPoint {
+// KML 解析類型
+interface KMLPoint {
   lat: number
   lon: number
   ele: number
   dist: number
+}
+
+// KML 解析：從 /route.kml 抓資料
+async function fetchKMLRoute(): Promise<KMLPoint[]> {
+  try {
+    const res = await fetch(KML_URL)
+    if (!res.ok) throw new Error('Failed to fetch KML')
+    const text = await res.text()
+    const parser = new DOMParser()
+    const xml = parser.parseFromString(text, 'text/xml')
+    
+    // 找 LineString 裡的 coordinates
+    const lineStrings = xml.querySelectorAll('LineString')
+    let coordText = ''
+    for (const ls of lineStrings) {
+      const coords = ls.querySelector('coordinates')
+      if (coords && coords.textContent) {
+        coordText = coords.textContent
+        break
+      }
+    }
+    
+    if (!coordText) throw new Error('No coordinates found')
+    
+    const points: KMLPoint[] = []
+    let totalDist = 0
+    
+    const coords = coordText.trim().split(/\s+/)
+    for (let i = 0; i < coords.length; i++) {
+      const parts = coords[i].split(',')
+      if (parts.length < 2) continue
+      
+      const lon = parseFloat(parts[0])
+      const lat = parseFloat(parts[1])
+      const ele = parts.length > 2 ? parseFloat(parts[2]) : 0
+      
+      if (i > 0) {
+        const prev = points[i - 1]
+        totalDist += getDistance(prev.lat, prev.lon, lat, lon)
+      }
+      
+      points.push({ lat, lon, ele, dist: totalDist })
+    }
+    
+    return points
+  } catch (e) {
+    console.error('KML parse failed:', e)
+    return []
+  }
 }
 
 function parseTime(timeStr: string, baseDate: Date): Date {
@@ -283,32 +331,10 @@ function ElevationChart() {
   const [stats, setStats] = useState<{ gain: number, loss: number, max: number, min: number } | null>(null)
 
   useEffect(() => {
-    const fetchAndParseGPX = async () => {
+    const loadElevation = async () => {
       try {
-        const res = await fetch(`https://api.allorigins.win/raw?url=https://reurl.cc/Xqx0ve`)
-        const text = await res.text()
-        const parser = new DOMParser()
-        const xml = parser.parseFromString(text, 'text/xml')
-        const pts = xml.querySelectorAll('trkpt')
-
-        const points: GPXPoint[] = []
-        let totalDist = 0
-
-        pts.forEach((pt, i) => {
-          const lat = parseFloat(pt.getAttribute('lat') || '0')
-          const lon = parseFloat(pt.getAttribute('lon') || '0')
-          const ele = parseFloat(pt.querySelector('ele')?.textContent || '0')
-
-          if (i > 0) {
-            const prev = points[i - 1]
-            const d = getDistance(prev.lat, prev.lon, lat, lon)
-            totalDist += d
-          }
-
-          points.push({ lat, lon, ele, dist: totalDist })
-        })
-
-        if (points.length === 0) throw new Error('No points found')
+        const points = await fetchKMLRoute()
+        if (points.length === 0) throw new Error('No route points')
 
         // 計算統計數據
         let gain = 0
@@ -335,16 +361,16 @@ function ElevationChart() {
         drawElevationChart(points)
         setLoading(false)
       } catch (e) {
-        console.error('GPX fetch failed:', e)
-        setError('⚠️ GPX 來源為 Google Maps 連結，無法直接抓取。請至競賽組取得 GPX 檔案，或聯繫主辦單位索取路線檔。')
+        console.error('Elevation fetch failed:', e)
+        setError('⚠️ 高度資料載入失敗')
         setLoading(false)
       }
     }
 
-    fetchAndParseGPX()
+    loadElevation()
   }, [])
 
-  const drawElevationChart = (points: GPXPoint[]) => {
+  const drawElevationChart = (points: KMLPoint[]) => {
     const container = document.getElementById('elevation-chart')
     if (!container) return
 
@@ -488,8 +514,7 @@ function ElevationChart() {
 // ============ GPX 地圖 ============
 function GPXMap() {
   const mapRef = useRef<L.Map | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const gpxLayerRef = useRef<any>(null)
+  const polylineRef = useRef<L.Polyline | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -511,49 +536,35 @@ function GPXMap() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const loadGPX = async () => {
+    const loadKML = async () => {
       try {
-        const proxyUrl = 'https://api.allorigins.win/raw?url='
-        const response = await fetch(proxyUrl + encodeURIComponent(GPX_URL))
-        
-        if (!response.ok) throw new Error('Failed to fetch GPX')
-        
-        const gpxText = await response.text()
-        
-        if (mapRef.current && !gpxLayerRef.current) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const gpx = new (window as any).L.GPX(gpxText, {
-            async: false,
-            marker_options: {
-              startIconUrl: undefined,
-              endIconUrl: undefined,
-              shadowUrl: undefined,
-            },
-            polyline_options: {
-              color: '#4ade80',
-              weight: 4,
-              opacity: 0.8,
-            },
+        const points = await fetchKMLRoute()
+        if (points.length === 0) throw new Error('No route points')
+
+        if (mapRef.current && !polylineRef.current) {
+          // KML 是 lon,lat，Leaflet 要 [lat, lon]
+          const latLngs: L.LatLngExpression[] = points.map(p => [p.lat, p.lon] as L.LatLngExpression)
+
+          const polyline = L.polyline(latLngs, {
+            color: '#4ade80',
+            weight: 4,
+            opacity: 0.8,
           })
-          
-          gpx.addTo(mapRef.current)
-          gpxLayerRef.current = gpx
-          
-          gpx.on('loaded', () => {
-            setLoading(false)
-            if (mapRef.current) {
-              mapRef.current.fitBounds(gpx.getBounds(), { padding: [20, 20] })
-            }
-          })
+
+          polyline.addTo(mapRef.current)
+          polylineRef.current = polyline
+
+          mapRef.current.fitBounds(polyline.getBounds(), { padding: [20, 20] })
+          setLoading(false)
         }
       } catch (err) {
-        console.error('GPX load error:', err)
-        setError('⚠️ Google Maps 路線無法直接抓取，請向主辦單位索取 GPX 檔案')
+        console.error('KML load error:', err)
+        setError('⚠️ 路線載入失敗')
         setLoading(false)
       }
     }
 
-    const timer = setTimeout(loadGPX, 500)
+    const timer = setTimeout(loadKML, 500)
     return () => clearTimeout(timer)
   }, [])
 
@@ -761,9 +772,9 @@ export default function App() {
               <h1 className="text-xl font-bold tracking-tight"><span className="text-accent">CRUFU</span> RUN 7th</h1>
               <p className="text-text-secondary text-xs">北台灣 240km 接力賽</p>
             </div>
-            <a href={GPX_URL} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline flex items-center gap-1">
+            <a href={KML_URL} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              下載 GPX
+              下載 KML
             </a>
           </div>
         </div>
