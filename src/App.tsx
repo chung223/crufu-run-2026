@@ -22,8 +22,8 @@ export const legs = [
   { num: 11, runner: "阿賢", start: "12:45", end: "13:37", min: 52, km: 7.4, difficulty: "易", startAddr: "新北市貢寮區東興街3號", endAddr: "新北市貢寮區丁子蘭坑道路102號", car: "A", gateOpen: "", gateClose: "" },
   { num: 12, runner: "湘宜", start: "13:40", end: "14:38", min: 58, km: 6.4, difficulty: "易", startAddr: "新北市貢寮區丁子蘭坑道路102號", endAddr: "鄰廣場[新巴士] 新北市雙溪區", car: "A", gateOpen: "", gateClose: "" },
   { num: 13, runner: "冠任", start: "14:40", end: "15:17", min: 37, km: 6.6, difficulty: "難中之王", startAddr: "新北市雙溪區", endAddr: "北37鄉道 新北市瑞芳區", car: "A", gateOpen: "", gateClose: "", transferMin: 11 },
-  { num: 14, runner: "小哲", start: "15:20", end: "14:06", min: 46, km: 8.2, difficulty: "適中", startAddr: "北37鄉道 新北市瑞芳區", endAddr: "瑞濱公路觀景台 新北市瑞芳區", car: "A", gateOpen: "", gateClose: "", transferMin: 12 },
-  { num: 15, runner: "韋翰", start: "14:10", end: "14:57", min: 47, km: 6.7, difficulty: "易", startAddr: "瑞濱公路觀景台 新北市瑞芳區", endAddr: "基隆市中山區湖海路一段11號", car: "A", gateOpen: "", gateClose: "", transferMin: 23 },
+  { num: 14, runner: "小哲", start: "15:20", end: "16:06", min: 46, km: 8.2, difficulty: "適中", startAddr: "北37鄉道 新北市瑞芳區", endAddr: "瑞濱公路觀景台 新北市瑞芳區", car: "A", gateOpen: "", gateClose: "", transferMin: 12 },
+  { num: 15, runner: "韋翰", start: "16:10", end: "16:57", min: 47, km: 6.7, difficulty: "易", startAddr: "瑞濱公路觀景台 新北市瑞芳區", endAddr: "基隆市中山區湖海路一段11號", car: "A", gateOpen: "", gateClose: "", transferMin: 23 },
   { num: 16, runner: "建穎", start: "15:00", end: "15:30", min: 30, km: 5.4, difficulty: "適中", startAddr: "基隆市中山區湖海路一段11號", endAddr: "富東登船處 新北市萬里區獅頭路15-3號", car: "B", gateOpen: "", gateClose: "", transferMin: 12 },
   { num: 17, runner: "佳吟", start: "15:30", end: "16:14", min: 44, km: 6.7, difficulty: "易", startAddr: "富東登船處 新北市萬里區獅頭路15-3號", endAddr: "國聖埔 新北市萬里區", car: "B", gateOpen: "", gateClose: "", transferMin: 11 },
   { num: 18, runner: "小歐", start: "16:15", end: "17:03", min: 48, km: 7.3, difficulty: "易", startAddr: "國聖埔 新北市萬里區", endAddr: "水尾景觀休憩公園 新北市金山區", car: "B", gateOpen: "", gateClose: "", transferMin: 7, night: true },
@@ -44,8 +44,22 @@ export const legs = [
 export const vehicles = [
   { name: "A車", driver: "云暄", color: "#f97316", legs: "1-5, 11-15, 21-25" },
   { name: "B車", driver: "建穎", color: "#22c55e", legs: "6-10, 16-20, 26-30" },
-  { name: "C車", driver: "羽羚", passengers: "欣湄", color: "#3b82f6", legs: "" },
+  { name: "C車", driver: "羽羚", passengers: "欣湄", color: "#3b82f6", legs: "彈性支援", note: "和運租車" },
 ]
+
+export const ASSEMBLY_INFO = {
+  date: "2026年4月10日（五）",
+  location: "湘豐客棧",
+  address: "宜蘭縣礁溪鄉塭底路70-14號",
+  nav: "天空島上的小木屋",
+  url: "https://maps.app.goo.gl/QUqAxnjEj55van9d6?g_st=ipc",
+}
+
+export const ACCOMMODATION = {
+  name: "水芳民宿",
+  location: "九份",
+  url: "https://maps.app.goo.gl/QUqAxnjEj55van9d6?g_st=ipc",
+}
 
 // ============ 工具函式 ============
 function getDifficultyConfig(difficulty: string) {
@@ -752,13 +766,57 @@ export default function App() {
         
         {/* 即時進度 */}
         <CurrentLegIndicator />
-        
+
         {/* 快速資訊卡片 */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard value="04:30" label="起跑時間" accent />
           <StatCard value="武荖坑" label="起點" />
           <StatCard value="~08:56" label="預計終點" />
           <StatCard value="~4/12" label="完賽日" />
+        </section>
+
+        {/* 活動流程資訊 */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* 集合 */}
+          <a href={ASSEMBLY_INFO.url} target="_blank" rel="noopener noreferrer" className="block bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 p-5 hover:border-orange-500/50 transition">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-2xl">🏨</span>
+              <div>
+                <p className="text-orange-400 text-xs font-bold uppercase tracking-wider">Day 0 · 4/10 (五)</p>
+                <p className="text-white font-bold font-display">集合入住</p>
+              </div>
+            </div>
+            <p className="text-slate-200 text-sm font-medium">{ASSEMBLY_INFO.location}</p>
+            <p className="text-slate-500 text-xs mt-1">{ASSEMBLY_INFO.address}</p>
+            <p className="text-slate-600 text-xs mt-2">導航：{ASSEMBLY_INFO.nav}</p>
+          </a>
+
+          {/* 住宿 */}
+          <a href={ACCOMMODATION.url} target="_blank" rel="noopener noreferrer" className="block bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 p-5 hover:border-amber-500/50 transition">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-2xl">🛏️</span>
+              <div>
+                <p className="text-amber-400 text-xs font-bold uppercase tracking-wider">中途住宿</p>
+                <p className="text-white font-bold font-display">{ACCOMMODATION.name}</p>
+              </div>
+            </div>
+            <p className="text-slate-200 text-sm font-medium">{ACCOMMODATION.location}</p>
+            <p className="text-slate-500 text-xs mt-1">夜間接力必經休息站</p>
+          </a>
+
+          {/* GPX */}
+          <a href="https://reurl.cc/Xqx0ve" target="_blank" rel="noopener noreferrer" className="block bg-gradient-to-br from-slate-800/80 to-slate-900/80 rounded-2xl border border-slate-700/50 p-5 hover:border-green-500/50 transition">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-2xl">📍</span>
+              <div>
+                <p className="text-green-400 text-xs font-bold uppercase tracking-wider">路線軌跡</p>
+                <p className="text-white font-bold font-display">GPX 檔案</p>
+              </div>
+            </div>
+            <p className="text-slate-200 text-sm font-medium">武荖坑 → 淡水漁人碼頭</p>
+            <p className="text-slate-500 text-xs mt-1">全程 220km · 30 棒</p>
+            <p className="text-green-500/80 text-xs mt-2 font-mono">reurl.cc/Xqx0ve ↗</p>
+          </a>
         </section>
 
         {/* 路線地圖 */}
