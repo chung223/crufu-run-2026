@@ -652,6 +652,7 @@ const TEAM_PASSWORD = '靠緣分組隊，靠意志完賽'
 function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
   const [input, setInput] = useState('')
   const [error, setError] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -671,13 +672,22 @@ function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
         <h2 className="text-2xl font-bold text-white mb-2 font-display">限時鎖定</h2>
         <p className="text-slate-400 text-sm mb-6">此頁面受保護，請輸入通關密語</p>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="password"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="輸入通關密語..."
-            className={`w-full px-4 py-3 bg-slate-800 border rounded-xl text-white text-center text-lg focus:outline-none focus:ring-2 ${error ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-orange-500'}`}
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="輸入通關密語..."
+              className={`w-full px-4 py-3 bg-slate-800 border rounded-xl text-white text-center text-lg focus:outline-none focus:ring-2 pr-12 ${error ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-orange-500'}`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 text-xl"
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
           <button type="submit" className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-xl hover:opacity-90 transition">
             解鎖頁面
           </button>
