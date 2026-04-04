@@ -545,20 +545,28 @@ function LegCard({ leg, isExpanded, onToggle }: { leg: typeof legs[0], isExpande
 }
 
 // ============ 棒次時間軸 ============
-function LegsTimeline() {
+function LegsTimeline({ searchRunner = '' }: { searchRunner?: string }) {
   const [expandedLeg, setExpandedLeg] = useState<number | null>(null)
-  const totalKm = legs.reduce((sum, leg) => sum + leg.km, 0)
-  const totalMin = legs.reduce((sum, leg) => sum + leg.min, 0)
+  const filteredLegs = searchRunner
+    ? legs.filter(leg => leg.runner.includes(searchRunner))
+    : legs
+  const totalKm = (searchRunner ? filteredLegs : legs).reduce((sum, leg) => sum + leg.km, 0)
+  const totalMin = (searchRunner ? filteredLegs : legs).reduce((sum, leg) => sum + leg.min, 0)
   const nightLegs = legs.filter(leg => leg.night)
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
-          <h3 className="text-2xl font-bold font-display">棒次時間軸</h3>
-          <p className="text-slate-400 text-sm mt-1">
-            {legs.length} 棒 • {totalKm.toFixed(1)}km • 約 {Math.round(totalMin / 60)}h {totalMin % 60}m
-          </p>
+          {searchRunner ? (
+            <p className="text-slate-400 text-sm">
+              找到 <span className="text-orange-400 font-bold">{filteredLegs.length}</span> 筆「{searchRunner}」的棒次
+            </p>
+          ) : (
+            <p className="text-slate-400 text-sm">
+              {legs.length} 棒 • {totalKm.toFixed(1)}km • 約 {Math.round(totalMin / 60)}h {totalMin % 60}m
+            </p>
+          )}
         </div>
         <div className="flex gap-4 text-sm">
           <div className="stat-card rounded-lg px-4 py-2 text-center">
@@ -567,12 +575,19 @@ function LegsTimeline() {
           </div>
         </div>
       </div>
-      <div className="space-y-2">
-        {legs.map((leg) => (
-          <LegCard key={leg.num} leg={leg} isExpanded={expandedLeg === leg.num}
-            onToggle={() => setExpandedLeg(expandedLeg === leg.num ? null : leg.num)} />
-        ))}
-      </div>
+      {filteredLegs.length === 0 && searchRunner ? (
+        <div className="text-center py-8 text-slate-500">
+          <p className="text-2xl mb-2">🔍</p>
+          <p>找不到「{searchRunner}」的棒次</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filteredLegs.map((leg) => (
+            <LegCard key={leg.num} leg={leg} isExpanded={expandedLeg === leg.num}
+              onToggle={() => setExpandedLeg(expandedLeg === leg.num ? null : leg.num)} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -617,10 +632,57 @@ function VehicleCard({ vehicle }: { vehicle: typeof vehicles[0] }) {
   )
 }
 
+// ============ 密碼保護 ============
+const TEAM_PASSWORD = '靠緣分組隊，靠意志完賽'
+
+function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
+  const [input, setInput] = useState('')
+  const [error, setError] = useState(false)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (input === TEAM_PASSWORD) {
+      localStorage.setItem('crufu_auth', '1')
+      onUnlock()
+    } else {
+      setError(true)
+      setTimeout(() => setError(false), 1500)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)' }}>
+      <div className="bg-slate-900/90 border border-slate-700/50 rounded-2xl p-8 max-w-md w-full text-center backdrop-blur-sm">
+        <div className="text-5xl mb-4">🔒</div>
+        <h2 className="text-2xl font-bold text-white mb-2 font-display">限時鎖定</h2>
+        <p className="text-slate-400 text-sm mb-6">此頁面受保護，請輸入通關密語</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="password"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="輸入通關密語..."
+            className={`w-full px-4 py-3 bg-slate-800 border rounded-xl text-white text-center text-lg focus:outline-none focus:ring-2 ${error ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-orange-500'}`}
+          />
+          <button type="submit" className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-xl hover:opacity-90 transition">
+            解鎖頁面
+          </button>
+        </form>
+        {error && <p className="text-red-400 text-sm mt-3 animate-pulse">密語錯誤，請再試一次</p>}
+        <p className="text-slate-600 text-xs mt-6">提示：隊伍的精神標語</p>
+      </div>
+    </div>
+  )
+}
+
 // ============ 主應用 ============
 export default function App() {
+  const [isUnlocked, setIsUnlocked] = useState(() => localStorage.getItem('crufu_auth') === '1')
+  const [searchRunner, setSearchRunner] = useState('')
   const totalKm = legs.reduce((sum, leg) => sum + leg.km, 0)
   const nightLegs = legs.filter(leg => leg.night).length
+
+  if (!isUnlocked) return <PasswordGate onUnlock={() => setIsUnlocked(true)} />
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)' }}>
@@ -710,7 +772,26 @@ export default function App() {
 
         {/* 棒次時間軸 */}
         <section>
-          <LegsTimeline />
+          <div className="mb-5 flex flex-col md:flex-row gap-3 items-start md:items-center">
+            <h2 className="text-2xl font-bold font-display">
+              <span className="text-orange-500">⏱️</span> 棒次時間軸
+            </h2>
+            <div className="flex-1 flex gap-2">
+              <input
+                type="text"
+                value={searchRunner}
+                onChange={e => setSearchRunner(e.target.value)}
+                placeholder="搜尋跑者名字..."
+                className="flex-1 px-4 py-2 bg-slate-800/80 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-slate-500"
+              />
+              {searchRunner && (
+                <button onClick={() => setSearchRunner('')} className="px-3 py-2 bg-slate-700 rounded-xl text-slate-300 text-sm hover:bg-slate-600">
+                  清除
+                </button>
+              )}
+            </div>
+          </div>
+          <LegsTimeline searchRunner={searchRunner} />
         </section>
 
         {/* 支援車輛 */}
@@ -754,23 +835,66 @@ export default function App() {
           {/* 建議攜帶 */}
           <div className="bg-slate-900/60 rounded-2xl border border-slate-700/50 p-6 backdrop-blur-sm">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2 font-display">
-              <span>🎒</span> 建議攜帶
+              <span>🎒</span> 物資準備清單
             </h3>
-            <div className="space-y-3">
-              {[
-                { icon: "🔦", name: "頭燈", note: "夜間必備" },
-                { icon: "🧥", name: "保暖外套", note: "深夜必備" },
-                { icon: "💧", name: "水壺/運動飲料", note: "補水必備" },
-                { icon: "🦺", name: "反光背心", note: "安全加分" },
-              ].map((item) => (
-                <div key={item.name} className="flex items-center gap-3 bg-slate-800/50 rounded-lg px-3 py-2">
-                  <span className="text-xl">{item.icon}</span>
-                  <div>
-                    <p className="font-medium text-sm text-slate-200">{item.name}</p>
-                    <p className="text-xs text-slate-500">{item.note}</p>
-                  </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-orange-400 text-xs font-bold mb-2 uppercase tracking-wider">🌙 夜間跑者必備</p>
+                <div className="space-y-2">
+                  {[
+                    { icon: "🔦", name: "頭燈", note: "夜間必備，建議帶備用電池" },
+                    { icon: "🧥", name: "風衣/外套", note: "深夜山區 15°C 以下" },
+                    { icon: "🦺", name: "反光背心", note: "安全必備，車輛辨識" },
+                    { icon: "👟", name: "备跑鞋", note: "弄濕了可以替換" },
+                  ].map((item) => (
+                    <div key={item.name} className="flex items-center gap-3 bg-slate-800/50 rounded-lg px-3 py-2">
+                      <span className="text-xl">{item.icon}</span>
+                      <div>
+                        <p className="font-medium text-sm text-slate-200">{item.name}</p>
+                        <p className="text-xs text-slate-500">{item.note}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              <div>
+                <p className="text-amber-400 text-xs font-bold mb-2 uppercase tracking-wider">💪 個人補給</p>
+                <div className="space-y-2">
+                  {[
+                    { icon: "💧", name: "水壺", note: "600ml 以上，隨時補水" },
+                    { icon: "🍌", name: "能量棒/香蕉", note: "接力區快速補充" },
+                    { icon: "🧴", name: "防晒", note: "白天路段防曬" },
+                    { icon: "🩹", name: "OK 绷", note: "預防磨腳" },
+                  ].map((item) => (
+                    <div key={item.name} className="flex items-center gap-3 bg-slate-800/50 rounded-lg px-3 py-2">
+                      <span className="text-xl">{item.icon}</span>
+                      <div>
+                        <p className="font-medium text-sm text-slate-200">{item.name}</p>
+                        <p className="text-xs text-slate-500">{item.note}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-sky-400 text-xs font-bold mb-2 uppercase tracking-wider">🚗 車上物資</p>
+                <div className="space-y-2">
+                  {[
+                    { icon: "🥤", name: "飲水/運動飲料", note: "大量備用" },
+                    { icon: "🛏️", name: "更換衣物", note: "乾衣服很重要" },
+                    { icon: "🔋", name: "行動電源", note: "手機導航必備" },
+                    { icon: "💊", name: "藥品", note: "OK 绷、普拿疼、哨子" },
+                  ].map((item) => (
+                    <div key={item.name} className="flex items-center gap-3 bg-slate-800/50 rounded-lg px-3 py-2">
+                      <span className="text-xl">{item.icon}</span>
+                      <div>
+                        <p className="font-medium text-sm text-slate-200">{item.name}</p>
+                        <p className="text-xs text-slate-500">{item.note}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>
