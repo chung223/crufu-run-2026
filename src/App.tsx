@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import routeKML from './assets/route.kml?url'
 
 // ============ 賽事資料 ============
 const EVENT_DATE = new Date('2026-04-11T04:30:00+08:00')
-const KML_URL = '/route.kml'
+const KML_URL = routeKML
 
 export const legs = [
   { num: 1, runner: "韋翰", start: "04:30", end: "05:17", min: 47, km: 6.7, difficulty: "易", startAddr: "宜蘭縣蘇澳鎮武荖坑路116號", endAddr: "宜蘭縣蘇澳鎮信義路101號", car: "A", gateOpen: "", gateClose: "" },
@@ -685,6 +686,11 @@ export default function App() {
           <p className="text-2xl md:text-3xl font-bold text-white mb-2 font-display">
             CRUFU RUN 7th
           </p>
+          {/* 隊名 - 頁面主體 */}
+          <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 px-6 py-3 rounded-2xl mb-4">
+            <span className="text-2xl">🏃</span>
+            <span className="text-xl md:text-2xl font-bold text-white font-display">靠緣分組隊，靠意志完賽</span>
+          </div>
           <p className="text-slate-400 text-lg mb-8">
             北台灣 220km 跨夜接力
           </p>
